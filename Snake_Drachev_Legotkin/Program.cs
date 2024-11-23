@@ -1,4 +1,4 @@
-﻿    using Common;
+﻿using Common;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -11,6 +11,7 @@ using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using static Common.Snakes;
 
 namespace Snake_Drachev_Legotkin
@@ -20,9 +21,9 @@ namespace Snake_Drachev_Legotkin
         public static List<Leaders> Leaders = new List<Leaders>();
         public static List<ViewModelUserSettings> remoteIPAddress = new List<ViewModelUserSettings>();
         public static List<ViewModelGames> viewModelGames = new List<ViewModelGames>();
-        
+
         private static int localPort = 5001;
-       
+
         public static int MaxSpeed = 15;
         static void Main(string[] args)
         {
@@ -41,12 +42,14 @@ namespace Snake_Drachev_Legotkin
         }
         public static void Send()
         {
-            foreach (ViewModelUserSettings User in remoteIPAddress) {
+            foreach (ViewModelUserSettings User in remoteIPAddress)
+            {
                 UdpClient sender = new UdpClient();
-                IPEndPoint endPoint = new IPEndPoint (
+                IPEndPoint endPoint = new IPEndPoint(
                     IPAddress.Parse(User.IPAddress),
                     int.Parse(User.Port));
-                try {
+                try
+                {
                     byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(viewModelGames.Find(x => x.IdSnake == User.IdSnake)));
                     sender.Send(bytes, bytes.Length, endPoint);
                     Console.ForegroundColor = ConsoleColor.Yellow;
@@ -56,13 +59,13 @@ namespace Snake_Drachev_Legotkin
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Возникло исключение: " + ex.ToString() + "\n " + ex.Message);
-                               
+
                 }
                 finally
                 {
                     sender.Close();
                 }
-            }   
+            }
         }
         public static void Receiver()
         {
@@ -156,7 +159,8 @@ namespace Snake_Drachev_Legotkin
                 Thread.Sleep(100);
 
                 List<ViewModelGames> RemoteSnakes = viewModelGames.FindAll(x => x.SnakesPlayers.GameOver);
-                if (RemoteSnakes.Count > 0){
+                if (RemoteSnakes.Count > 0)
+                {
                     foreach (ViewModelGames DeadSnake in RemoteSnakes)
                     {
                         Console.ForegroundColor = ConsoleColor.Green;
@@ -167,7 +171,8 @@ namespace Snake_Drachev_Legotkin
                     viewModelGames.RemoveAll(x => x.SnakesPlayers.GameOver);
                 }
 
-                foreach (ViewModelUserSettings User in remoteIPAddress){
+                foreach (ViewModelUserSettings User in remoteIPAddress)
+                {
                     Snakes Snake = viewModelGames.Find(x => x.IdSnake == User.IdSnake).SnakesPlayers;
                     for (int i = Snake.Points.Count - 1; i >= 0; i--)
                     {
@@ -177,7 +182,7 @@ namespace Snake_Drachev_Legotkin
                         }
                         else
                         {
-                            int Speed = 10 + (int)Math.Round(Snake.Points.Count/20f);
+                            int Speed = 10 + (int)Math.Round(Snake.Points.Count / 20f);
                             if (Speed > MaxSpeed) Speed = MaxSpeed;
 
                             if (Snake.direction == Snakes.Direction.Right)
@@ -207,9 +212,61 @@ namespace Snake_Drachev_Legotkin
                     {
                         Snake.GameOver = true;
                     }
+
+                    if (Snake.direction != Snakes.Direction.Start)
+                    {
+                        for (int i = 1; i < Snake.Points.Count; i++)
+                        {
+                            if (Snake.Points[0].X >= Snake.Points[i].X - 1 && Snake.Points[0].X <= Snake.Points[i].X + 1)
+                            {
+                                if (Snake.Points[0].Y > Snake.Points[i].Y - 1 && Snake.Points[0].Y <= Snake.Points[i].Y + 1)
+                                {
+                                    Snake.GameOver = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (Snake.Points[0].X >= viewModelGames.Find(x => x.IdSnake == User.IdSnake).Points.X - 15 &&
+                        Snake.Points[0].X <= viewModelGames.Find(x => x.IdSnake == User.IdSnake).Points.X + 15)
+                    {
+                        if (Snake.Points[0].Y >= viewModelGames.Find(x => x.IdSnake == User.IdSnake).Points.Y - 15 &&
+                            Snake.Points[0].Y <= viewModelGames.Find(x => x.IdSnake == User.IdSnake).Points.Y + 15)
+                        {
+                            viewModelGames.Find(x => x.IdSnake == User.IdSnake).Points = new Snakes.Point(
+                            new Random().Next(10, 783),
+                            new Random().Next(10, 410));
+                            Snake.Points.Add(new Snakes.Point()
+                            {
+                                X = Snake.Points[Snake.Points.Count - 1].X,
+                                Y = Snake.Points[Snake.Points.Count - 1].Y
+                            });
+                            LoadLeaders();
+                            Leaders.Add(new Leaders()
+                            {
+                                Name = User.Name,
+                                Points = Snake.Points.Count - 3
+                            });
+                            Leaders = Leaders.OrderByDescending(x => x.Points).ThenBy(x => x.Name).ToList();
+                            viewModelGames.Find(x => x.IdSnake == User.IdSnake).Top = Leaders.FindIndex(x => x.Points == Snake.Points.Count - 3 && x.Name == User.Name) + 1;
+                        }
+                    }
+                    if (Snake.GameOver)
+                    {
+                        LoadLeaders();
+                        Leaders.Add(new Leaders()
+                        {
+                            Name = User.Name,
+                            Points = Snake.Points.Count - 3
+                        });
+
+                        SaveLeaders();
+                    }
                 }
+                Send();
             }
         }
+
         public static void SaveLeaders()
         {
             string json = JsonConvert.SerializeObject(Leaders);

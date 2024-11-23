@@ -35,7 +35,7 @@ namespace SnakeWPF.Pages
                 if (StepCadr == 0) StepCadr = 1;
                 else StepCadr = 0;
                 canvas.Children.Clear();
-                for (int iPoint1 = MainWindow.mainWindow.ViewModelGames.SnakesPlayers.Points.Count - 1; iPoint >= 0; iPoint--)
+                for (int iPoint = MainWindow.mainWindow.ViewModelGames.SnakesPlayers.Points.Count - 1; iPoint >= 0; iPoint--)
                 {
                     Snakes.Point SnakePoint = MainWindow.mainWindow.ViewModelGames.SnakesPlayers.Points[iPoint];
                     if (iPoint != 0)

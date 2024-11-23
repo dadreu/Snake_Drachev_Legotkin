@@ -77,7 +77,8 @@ namespace SnakeWPF
             {
                 while (true)
                 {
-                    byte[] receiveBytes = receivingUdpClient.Receive(ref RemoteIpEndPoint);
+                    byte[] receiveBytes = new byte[10485760];
+                    receiveBytes = receivingUdpClient.Receive(ref RemoteIpEndPoint);
                     string returnData = Encoding.UTF8.GetString(receiveBytes);
                     if (ViewModelGames == null)
                     {

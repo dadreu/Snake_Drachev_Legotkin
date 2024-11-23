@@ -12,6 +12,6 @@
         <Grid.Background>
             <ImageBrush ImageSource="/SnakeWPF;component/Image/background_3.png" Stretch="UniformToFill"/>
         </Grid.Background>
-        <Canvas x:Name="canvas"/>
+        <Canvas x:Name="canvas" Panel.ZIndex="1000"/>
     </Grid>
 </Page>
